@@ -1,18 +1,10 @@
-# ECE 542
-# Project 3: CNN
-# October 2018
-# Description: This script contains all of the functions used for loading data, building, training, and testing CNN
+"""
+Main script containing all functions pertaining to the CNN model. This script is referenced by the other scripts for
+loading data, building, training, and testing model.
 
-# dataset: MNIST
-# training set size: 60k
-# test set size: 10k
-# 28x28x1
-# 10 class labesl (digits 0-9)
+"""
 
-# Notes:
-#   - validation_split: Float between 0 and 1. Fraction of the training data to be used as validation data
 
-################################################################################
 # IMPORTs
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPool2D, Dense, Dropout, Flatten, BatchNormalization
@@ -20,14 +12,11 @@ from tensorflow.keras.activations import relu, softmax, tanh, sigmoid, elu
 from tensorflow.keras.losses import sparse_categorical_crossentropy
 from tensorflow.keras.optimizers import Adam
 from sklearn.model_selection import train_test_split
-import os
 import numpy as np
-import cv2
-import scipy.io as sio
 import pickle
 
 
-################################################################################
+# import data from pickle files. setup train test split (80/20) and normalize data to [0,1]
 def data():
     with open('features.pkl', 'rb') as file:
         features = pickle.load(file)
@@ -42,8 +31,7 @@ def data():
     return x_train, y_train, x_test, y_test
 
 
-################################################################################
-# build model
+# build model, update hyperparameters here after running "run_hyperopt_cnn.py" with optimal params
 def build_model(input_shape=(64, 64, 1), learn_rate=0.00075633, drop_prob=0.02076, num_neurons=256, num_classes=6):
     model = Sequential()
     model.add(Conv2D(64, 5, input_shape=input_shape, padding="same", activation=elu))
@@ -60,14 +48,15 @@ def build_model(input_shape=(64, 64, 1), learn_rate=0.00075633, drop_prob=0.0207
     model.add(Dense(units=num_classes, activation=softmax))
 
     # configure model for training
-    model.compile(loss=sparse_categorical_crossentropy,  optimizer=Adam(lr=learn_rate, decay=0.001), metrics=["accuracy"])
+    model.compile(loss=sparse_categorical_crossentropy,
+                  optimizer=Adam(lr=learn_rate, decay=0.001), metrics=["accuracy"])
     model.summary()
     return model
 
 
-############################################################################
 # train model
-def train_model(model, train_images, train_labels, BATCH_SIZE, NUM_EPOCHS, valid_images, valid_labels, save_callback, tb_callback):
+def train_model(model, train_images, train_labels, BATCH_SIZE, NUM_EPOCHS,
+                valid_images, valid_labels, save_callback, tb_callback):
     history = model.fit(
         x=train_images,
         y=train_labels,
@@ -76,7 +65,7 @@ def train_model(model, train_images, train_labels, BATCH_SIZE, NUM_EPOCHS, valid
         validation_data=(valid_images, valid_labels),
         shuffle=True,
         callbacks=[save_callback, tb_callback],
-        verbose=2
+        verbose=1
     )
     history_dict = history.history
     train_accuracy = history_dict["acc"]
@@ -86,19 +75,19 @@ def train_model(model, train_images, train_labels, BATCH_SIZE, NUM_EPOCHS, valid
     return train_accuracy, train_loss, valid_accuracy, valid_loss
 
 
-############################################################################
 # train model with data generator
+# data generator requires manual input of number of steps
 def train_model_datagen(model, data_generator, valid_generator, x_train, y_train, batch_size, num_epochs,
                         x_valid, y_valid, save_callback, tb_callback):
     train_steps = x_train.shape[0]//batch_size
     valid_steps = x_valid.shape[0]//batch_size
     history = model.fit_generator(data_generator.flow(x_train, y_train, batch_size=batch_size),
-                                 epochs=num_epochs,
-                                 verbose=1,
-                                 validation_data=valid_generator.flow(x_valid, y_valid, batch_size=batch_size),
-                                 steps_per_epoch=train_steps,
-                                 validation_steps=valid_steps,
-                                 callbacks=[save_callback, tb_callback])
+                                  epochs=num_epochs,
+                                  verbose=1,
+                                  validation_data=valid_generator.flow(x_valid, y_valid, batch_size=batch_size),
+                                  steps_per_epoch=train_steps,
+                                  validation_steps=valid_steps,
+                                  callbacks=[save_callback, tb_callback])
     history_dict = history.history
     train_accuracy = history_dict["acc"]
     train_loss = history_dict["loss"]
@@ -107,7 +96,6 @@ def train_model_datagen(model, data_generator, valid_generator, x_train, y_train
     return train_accuracy, train_loss, valid_accuracy, valid_loss
 
 
-#################################################################################
 # evaluation on test set
 def test_model(model, test_images, test_labels):
     test_loss, test_accuracy = model.evaluate(
